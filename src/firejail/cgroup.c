@@ -79,10 +79,10 @@ void set_cgroup(const char *path) {
 		goto errout;
 
 	// path ends in tasks
-	char *ptr = strstr(path, "tasks");
+	char *ptr = strstr(path, "cgroup.procs");
 	if (!ptr)
 		goto errout;
-	if (*(ptr + 5) != '\0')
+	if (*(ptr + 12) != '\0')
 		goto errout;
 
 	// no .. traversal
