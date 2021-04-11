@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2020 Firejail Authors
+ * Copyright (C) 2014-2021 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -217,6 +217,10 @@ void build_share(const char *fname, FILE *fp) {
 //*******************************************
 static FileDB *tmp_out = NULL;
 static void tmp_callback(char *ptr) {
+	// skip strace file
+	if (strncmp(ptr, "/tmp/firejail-strace", 20) == 0)
+		return;
+
 	tmp_out = filedb_add(tmp_out, ptr);
 }
 

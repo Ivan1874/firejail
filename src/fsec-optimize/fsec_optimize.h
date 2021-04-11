@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2020 Firejail Authors
+ * Copyright (C) 2014-2021 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -22,7 +22,6 @@
 #include "../include/common.h"
 #include "../include/seccomp.h"
 #include <sys/mman.h>
-#include <sys/prctl.h>
 
 // optimize.c
 struct sock_filter *duplicate(struct sock_filter *filter, int entries);

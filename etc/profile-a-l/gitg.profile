@@ -10,7 +10,9 @@ noblacklist ${HOME}/.config/git
 noblacklist ${HOME}/.gitconfig
 noblacklist ${HOME}/.git-credentials
 noblacklist ${HOME}/.local/share/gitg
-noblacklist ${HOME}/.ssh
+
+# Allow ssh (blacklisted by disable-common.inc)
+include allow-ssh.inc
 
 include disable-common.inc
 include disable-devel.inc
@@ -57,6 +59,6 @@ private-tmp
 dbus-user filter
 dbus-user.own org.gnome.gitg
 dbus-user.talk ca.desrt.dconf
-# Uncomment (or put in your gitg.local) if you need keyring access.
+# Add the next line to your gitg.local if you need keyring access.
 #dbus-user.talk org.freedesktop.secrets
 dbus-system none

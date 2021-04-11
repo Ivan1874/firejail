@@ -50,4 +50,9 @@ private-etc alsa,alternatives,asound.conf,ca-certificates,crypto-policies,fonts,
 private-tmp
 
 dbus-user none
+# Add the next lines to your spectral.local to enable notification support.
+#ignore dbus-user none
+#dbus-user filter
+#dbus-user.talk org.freedesktop.Notifications
+#dbus-user.talk org.kde.StatusNotifierWatcher
 dbus-system none

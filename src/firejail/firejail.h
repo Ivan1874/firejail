@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2020 Firejail Authors
+ * Copyright (C) 2014-2021 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -80,6 +80,8 @@
 		rv = fchown(fd, uid, gid);\
 		(void) rv;\
 	} while (0)
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 // main.c
 typedef struct bridge_t {
@@ -326,8 +328,6 @@ extern int arg_keep_var_tmp; // don't overwrite /var/tmp
 extern int arg_writable_run_user;	// writable /run/user
 extern int arg_writable_var_log; // writable /var/log
 extern int arg_appimage;	// appimage
-extern int arg_audit;		// audit
-extern char *arg_audit_prog;	// audit
 extern int arg_apparmor;	// apparmor
 extern int arg_allow_debuggers;	// allow debuggers
 extern int arg_x11_block;	// block X11
@@ -372,7 +372,7 @@ char *guess_shell(void);
 // sandbox.c
 #define SANDBOX_DONE '1'
 int sandbox(void* sandbox_arg);
-void start_application(int no_sandbox, char *set_sandbox_status) __attribute__((noreturn));
+void start_application(int no_sandbox, int fd, char *set_sandbox_status) __attribute__((noreturn));
 void set_apparmor(void);
 
 // network_main.c
@@ -449,6 +449,9 @@ int profile_check_line(char *ptr, int lineno, const char *fname);
 // add a profile entry in cfg.profile list; use str to populate the list
 void profile_add(char *str);
 void profile_add_ignore(const char *str);
+char *profile_list_normalize(char *list);
+char *profile_list_compress(char *list);
+void profile_list_augment(char **list, const char *items);
 
 // list.c
 void list(void);
@@ -513,7 +516,6 @@ void check_private_dir(void);
 void update_map(char *mapping, char *map_file);
 void wait_for_other(int fd);
 void notify_other(int fd);
-const char *gnu_basename(const char *path);
 uid_t pid_get_uid(pid_t pid);
 uid_t get_group_id(const char *group);
 int remove_overlay_directory(void);
@@ -648,6 +650,8 @@ void network_set_run_file(pid_t pid);
 
 // fs_etc.c
 void fs_machineid(void);
+void fs_private_dir_copy(const char *private_dir, const char *private_run_dir, const char *private_list);
+void fs_private_dir_mount(const char *private_dir, const char *private_run_dir);
 void fs_private_dir_list(const char *private_dir, const char *private_run_dir, const char *private_list);
 
 // no_sandbox.c
@@ -656,7 +660,7 @@ int check_kernel_procs(void);
 void run_no_sandbox(int argc, char **argv) __attribute__((noreturn));
 
 #define MAX_ENVS 256			// some sane maximum number of environment variables
-#define MAX_ENV_LEN (PATH_MAX + 32)	// FOOBAR=SOME_PATH
+#define MAX_ENV_LEN (PATH_MAX + 32)	// FOOBAR=SOME_PATH, only applied to Firejail's own sandboxed apps
 // env.c
 typedef enum {
 	SETENV = 0,
@@ -664,8 +668,12 @@ typedef enum {
 } ENV_OP;
 
 void env_store(const char *str, ENV_OP op);
-void env_apply(void);
+void env_store_name_val(const char *name, const char *val, ENV_OP op);
+void env_apply_all(void);
+void env_apply_whitelist(void);
+void env_apply_whitelist_sbox(void);
 void env_defaults(void);
+const char *env_get(const char *name);
 void env_ibus_load(void);
 
 // fs_whitelist.c
@@ -790,15 +798,15 @@ void print_compiletime_support(void);
 
 // appimage.c
 void appimage_set(const char *appimage_path);
+void appimage_mount(void);
 void appimage_clear(void);
-const char *appimage_getdir(void);
 
 // appimage_size.c
-long unsigned int appimage2_size(const char *fname);
+long unsigned int appimage2_size(int fd);
 
 // cmdline.c
 void build_cmdline(char **command_line, char **window_title, int argc, char **argv, int index);
-void build_appimage_cmdline(char **command_line, char **window_title, int argc, char **argv, int index, char *apprun_path);
+void build_appimage_cmdline(char **command_line, char **window_title, int argc, char **argv, int index);
 
 // sbox.c
 // programs

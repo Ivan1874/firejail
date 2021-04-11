@@ -42,7 +42,7 @@ noroot
 # nosound
 notv
 nou2f
-# novideo
+novideo
 protocol unix,inet,inet6
 seccomp
 shell none
@@ -51,3 +51,12 @@ tracelog
 disable-mnt
 private-dev
 private-tmp
+
+dbus-user filter
+dbus-user.own net.sourceforge.liferea
+dbus-user.talk ca.desrt.dconf
+# Add the next line to your liferea.local if you use the 'Popup Notifications' plugin.
+#dbus-user.talk org.freedesktop.Notifications
+# Add the next line to your liferea.local if you use the 'Libsecret Support' plugin.
+#dbus-user.talk org.freedesktop.secrets
+dbus-system none

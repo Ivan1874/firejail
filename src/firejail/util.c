@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2020 Firejail Authors
+ * Copyright (C) 2014-2021 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -400,6 +400,8 @@ void touch_file_as_user(const char *fname, mode_t mode) {
 			SET_PERMS_STREAM(fp, -1, -1, mode);
 			fclose(fp);
 		}
+		else
+			fwarning("cannot create %s\n", fname);
 #ifdef HAVE_GCOV
 		__gcov_flush();
 #endif
@@ -439,35 +441,22 @@ int is_dir(const char *fname) {
 	return 0;
 }
 
-
 // return 1 if the file is a link
 int is_link(const char *fname) {
 	assert(fname);
 	if (*fname == '\0')
 		return 0;
 
-	char *dup = NULL;
-	struct stat s;
-	if (lstat(fname, &s) == 0) {
-		if (S_ISLNK(s.st_mode))
-			return 1;
-		if (S_ISDIR(s.st_mode)) {
-			// remove trailing slashes and single dots and try again
-			dup = strdup(fname);
-			if (!dup)
-				errExit("strdup");
-			trim_trailing_slash_or_dot(dup);
-			if (lstat(dup, &s) == 0) {
-				if (S_ISLNK(s.st_mode)) {
-					free(dup);
-					return 1;
-				}
-			}
-		}
-	}
+	char *dup = strdup(fname);
+	if (!dup)
+		errExit("strdup");
+	trim_trailing_slash_or_dot(dup);
+
+	char c;
+	ssize_t rv = readlink(dup, &c, 1);
 
 	free(dup);
-	return 0;
+	return (rv != -1);
 }
 
 // remove all slashes and single dots from the end of a path
@@ -565,27 +554,18 @@ char *clean_pathname(const char *path) {
 	if (!rv)
 		errExit("malloc");
 
-	if (len > 0) {
-		size_t i = 0, j = 0, cnt = 0;
-		for (; i < len; i++) {
-			if (path[i] == '/')
-				cnt++;
-			else
-				cnt = 0;
-
-			if (cnt < 2) {
-				rv[j] = path[i];
-				j++;
-			}
-		}
-		rv[j] = '\0';
-
-		// remove a trailing slash
-		if (j > 1 && rv[j - 1] == '/')
-			rv[j - 1] = '\0';
+	size_t i = 0;
+	size_t j = 0;
+	while (path[i]) {
+		while (path[i] == '/' && path[i+1] == '/')
+			i++;
+		rv[j++] = path[i++];
 	}
-	else
-		*rv = '\0';
+	rv[j] = '\0';
+
+	// remove a trailing slash
+	if (j > 1 && rv[j - 1] == '/')
+		rv[j - 1] = '\0';
 
 	return rv;
 }
@@ -819,20 +799,6 @@ void notify_other(int fd) {
 	fflush(stream);
 	fclose(stream);
 }
-
-
-
-
-// Equivalent to the GNU version of basename, which is incompatible with
-// the POSIX basename. A few lines of code saves any portability pain.
-// https://www.gnu.org/software/libc/manual/html_node/Finding-Tokens-in-a-String.html#index-basename
-const char *gnu_basename(const char *path) {
-	const char *last_slash = strrchr(path, '/');
-	if (!last_slash)
-		return path;
-	return last_slash+1;
-}
-
 
 uid_t pid_get_uid(pid_t pid) {
 	EUID_ASSERT();

@@ -1,5 +1,5 @@
  /*
- * Copyright (C) 2014-2020 Firejail Authors
+ * Copyright (C) 2014-2021 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -21,7 +21,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
-#include <sys/prctl.h>
 
 int arg_quiet = 0;
 
@@ -69,10 +68,9 @@ printf("\n");
 		usage();
 		return 0;
 	}
-#ifdef WARN_DUMPABLE
-	if (prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) == 1 && getuid())
-		fprintf(stderr, "Error fnet: I am dumpable\n");
-#endif
+
+	warn_dumpable();
+
 	char *quiet = getenv("FIREJAIL_QUIET");
 	if (quiet && strcmp(quiet, "yes") == 0)
 		arg_quiet = 1;

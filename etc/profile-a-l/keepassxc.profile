@@ -11,9 +11,15 @@ noblacklist ${HOME}/*.kdbx
 noblacklist ${HOME}/.cache/keepassxc
 noblacklist ${HOME}/.config/keepassxc
 noblacklist ${HOME}/.keepassxc
-# 2.2.4 needs this path when compiled with "Native messaging browser extension"
-noblacklist ${HOME}/.mozilla
 noblacklist ${DOCUMENTS}
+
+# Allow browser profiles, required for browser integration.
+noblacklist ${HOME}/.config/BraveSoftware
+noblacklist ${HOME}/.config/chromium
+noblacklist ${HOME}/.config/google-chrome
+noblacklist ${HOME}/.config/vivaldi
+noblacklist ${HOME}/.local/share/torbrowser
+noblacklist ${HOME}/.mozilla
 
 include disable-common.inc
 include disable-devel.inc
@@ -24,11 +30,21 @@ include disable-programs.inc
 include disable-shell.inc
 include disable-xdg.inc
 
-# You can enable whitelisting for keepassxc by uncommenting (or adding to you keepassxc.local) the following lines.
-# If you do so, you MUST store your database under ${HOME}/Documents/KeePassXC/foo.kdbx
+# You can enable whitelisting for keepassxc by adding the below to your keepassxc.local.
+# If you do, you MUST store your database under ${HOME}/Documents/KeePassXC/foo.kdbx.
 #mkdir ${HOME}/Documents/KeePassXC
 #whitelist ${HOME}/Documents/KeePassXC
-# Needed for KeePassXC-Browser
+# Needed for KeePassXC-Browser.
+#mkfile ${HOME}/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/org.keepassxc.keepassxc_browser.json
+#whitelist ${HOME}/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/org.keepassxc.keepassxc_browser.json
+#mkfile ${HOME}/.config/chromium/NativeMessagingHosts/org.keepassxc.keepassxc_browser.json
+#whitelist ${HOME}/.config/chromium/NativeMessagingHosts/org.keepassxc.keepassxc_browser.json
+#mkfile ${HOME}/.config/google-chrome/NativeMessagingHosts/org.keepassxc.keepassxc_browser.json
+#whitelist ${HOME}/.config/google-chrome/NativeMessagingHosts/org.keepassxc.keepassxc_browser.json
+#mkfile ${HOME}/.config/vivaldi/NativeMessagingHosts/org.keepassxc.keepassxc_browser.json
+#whitelist ${HOME}/.config/vivaldi/NativeMessagingHosts/org.keepassxc.keepassxc_browser.json
+#mkfile ${HOME}/.local/share/torbrowser/tbb/x86_64/tor-browser_en-US/Browser/TorBrowser/Data/Browser/.mozilla/native-messaging-hosts/org.keepassxc.keepassxc_browser.json
+#whitelist ${HOME}/.local/share/torbrowser/tbb/x86_64/tor-browser_en-US/Browser/TorBrowser/Data/Browser/.mozilla/native-messaging-hosts/org.keepassxc.keepassxc_browser.json
 #mkfile ${HOME}/.mozilla/native-messaging-hosts/org.keepassxc.keepassxc_browser.json
 #whitelist ${HOME}/.mozilla/native-messaging-hosts/org.keepassxc.keepassxc_browser.json
 #mkdir ${HOME}/.cache/keepassxc
@@ -54,7 +70,7 @@ notv
 nou2f
 novideo
 protocol unix,netlink
-seccomp
+seccomp !name_to_handle_at
 seccomp.block-secondary
 shell none
 tracelog
@@ -73,13 +89,12 @@ dbus-user.talk org.freedesktop.login1.Session
 dbus-user.talk org.gnome.ScreenSaver
 dbus-user.talk org.gnome.SessionManager
 dbus-user.talk org.gnome.SessionManager.Presence
-# Uncomment or add to your keepassxc.local to allow Notifications/Tray.
+# Add the next line to your keepassxc.local to allow notifications.
 #dbus-user.talk org.freedesktop.Notifications
+# Add the next line to your keepassxc.local to allow the tray menu.
 #dbus-user.talk org.kde.StatusNotifierWatcher
-# These numbers seems to be not stable, see #3713. Play around with them.
-#dbus-user.own org.kde.StatusNotifierItem-2-2
-#dbus-user.own org.kde.StatusNotifierItem-10-2
+#dbus-user.own org.kde.*
 dbus-system none
 
-# Mutex is stored in /tmp by default, which is broken by private-tmp
+# Mutex is stored in /tmp by default, which is broken by private-tmp.
 join-or-start keepassxc

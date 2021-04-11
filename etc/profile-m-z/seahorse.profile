@@ -9,8 +9,9 @@ include globals.local
 blacklist /tmp/.X11-unix
 
 noblacklist ${HOME}/.gnupg
-noblacklist ${HOME}/.ssh
-noblacklist /tmp/ssh-*
+
+# Allow ssh (blacklisted by disable-common.inc)
+include allow-ssh.inc
 
 include disable-common.inc
 include disable-devel.inc
@@ -21,7 +22,7 @@ include disable-programs.inc
 include disable-xdg.inc
 
 # whitelisting in ${HOME} breaks file encryption feature of nautilus.
-# once #2882 is fixed this can be uncommented and nowhitelisted in seahorse-tool.profile
+# Once #2882 is fixed this can be activated here and nowhitelisted in seahorse-tool.profile.
 #mkdir ${HOME}/.gnupg
 #mkdir ${HOME}/.ssh
 #whitelist ${HOME}/.gnupg

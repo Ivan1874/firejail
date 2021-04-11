@@ -8,6 +8,10 @@ include globals.local
 
 noblacklist ${HOME}/.cache/fractal
 
+# Allow python (blacklisted by disable-interpreters.inc)
+include allow-python2.inc
+include allow-python3.inc
+
 include disable-common.inc
 include disable-devel.inc
 include disable-exec.inc
@@ -49,6 +53,6 @@ private-tmp
 dbus-user filter
 dbus-user.own org.gnome.Fractal
 dbus-user.talk ca.desrt.dconf
-dbus-user.talk org.freedesktop.secrets
 dbus-user.talk org.freedesktop.Notifications
+dbus-user.talk org.freedesktop.secrets
 dbus-system none

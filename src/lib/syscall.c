@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2020 Firejail Authors
+ * Copyright (C) 2014-2021 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -336,6 +336,7 @@ static const SyscallGroupList sysgroups[] = {
 #endif
 	},
 	{ .name = "@default-keep", .list =
+	  "execveat," // commonly used by fexecve
 	  "execve,"
 	  "prctl"
 	},
@@ -357,6 +358,9 @@ static const SyscallGroupList sysgroups[] = {
 #endif
 #ifdef SYS_faccessat
 	  "faccessat,"
+#endif
+#ifdef SYS_faccessat2
+	  "faccessat2,"
 #endif
 #ifdef SYS_fallocate
 	  "fallocate,"

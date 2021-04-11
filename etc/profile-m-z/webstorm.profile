@@ -8,11 +8,15 @@ include globals.local
 noblacklist ${HOME}/.WebStorm*
 noblacklist ${HOME}/.android
 noblacklist ${HOME}/.local/share/JetBrains
-noblacklist ${HOME}/.ssh
 noblacklist ${HOME}/.tooling
+# Allow KDE file manager to open with log directories (blacklisted by disable-programs.inc)
+noblacklist ${HOME}/.config/dolphinrc
 
 # Allows files commonly used by IDEs
 include allow-common-devel.inc
+
+# Allow ssh (blacklisted by disable-common.inc)
+include allow-ssh.inc
 
 noblacklist ${PATH}/node
 noblacklist ${HOME}/.nvm

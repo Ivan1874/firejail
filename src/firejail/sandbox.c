@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2020 Firejail Authors
+ * Copyright (C) 2014-2021 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -268,8 +268,7 @@ static void sandbox_if_up(Bridge *br) {
 
 static void chk_chroot(void) {
 	// if we are starting firejail inside some other container technology, we don't care about this
-	char *mycont = getenv("container");
-	if (mycont)
+	if (env_get("container"))
 		return;
 
 	// check if this is a regular chroot
@@ -419,7 +418,7 @@ static int ok_to_run(const char *program) {
 			return 1;
 	}
 	else { // search $PATH
-		char *path1 = getenv("PATH");
+		const char *path1 = env_get("PATH");
 		if (path1) {
 			if (arg_debug)
 				printf("Searching $PATH for %s\n", program);
@@ -461,41 +460,24 @@ static int ok_to_run(const char *program) {
 	return 0;
 }
 
-void start_application(int no_sandbox, char *set_sandbox_status) {
+void start_application(int no_sandbox, int fd, char *set_sandbox_status) {
 	// set environment
-	if (no_sandbox == 0) {
+	if (no_sandbox == 0)
 		env_defaults();
-		env_apply();
-	}
+	env_apply_all();
+
 	// restore original umask
 	umask(orig_umask);
 
 	if (arg_debug) {
-		printf("starting application\n");
+		printf("Starting application\n");
 		printf("LD_PRELOAD=%s\n", getenv("LD_PRELOAD"));
 	}
 
 	//****************************************
-	// audit
-	//****************************************
-	if (arg_audit) {
-		assert(arg_audit_prog);
-
-#ifdef HAVE_GCOV
-		__gcov_dump();
-#endif
-		seccomp_install_filters();
-		if (set_sandbox_status)
-			*set_sandbox_status = SANDBOX_DONE;
-		execl(arg_audit_prog, arg_audit_prog, NULL);
-
-		perror("execl");
-		exit(1);
-	}
-	//****************************************
 	// start the program without using a shell
 	//****************************************
-	else if (arg_shell_none) {
+	if (arg_shell_none) {
 		if (arg_debug) {
 			int i;
 			for (i = cfg.original_program_index; i < cfg.original_argc; i++) {
@@ -532,35 +514,37 @@ void start_application(int no_sandbox, char *set_sandbox_status) {
 	//****************************************
 	else {
 		assert(cfg.shell);
-		assert(cfg.command_line);
 
 		char *arg[5];
 		int index = 0;
 		arg[index++] = cfg.shell;
-		if (login_shell) {
-			arg[index++] = "-l";
-			if (arg_debug)
-				printf("Starting %s login shell\n", cfg.shell);
-		} else {
-			arg[index++] = "-c";
+		if (cfg.command_line) {
 			if (arg_debug)
 				printf("Running %s command through %s\n", cfg.command_line, cfg.shell);
+			arg[index++] = "-c";
 			if (arg_doubledash)
 				arg[index++] = "--";
 			arg[index++] = cfg.command_line;
 		}
-		arg[index] = NULL;
+		else if (login_shell) {
+			if (arg_debug)
+				printf("Starting %s login shell\n", cfg.shell);
+			arg[index++] = "-l";
+		}
+		else if (arg_debug)
+			printf("Starting %s shell\n", cfg.shell);
+
 		assert(index < 5);
+		arg[index] = NULL;
 
 		if (arg_debug) {
 			char *msg;
-			if (asprintf(&msg, "sandbox %d, execvp into %s", sandbox_pid, cfg.command_line) == -1)
+			if (asprintf(&msg, "sandbox %d, execvp into %s",
+				sandbox_pid, cfg.command_line ? cfg.command_line : cfg.shell) == -1)
 				errExit("asprintf");
 			logmsg(msg);
 			free(msg);
-		}
 
-		if (arg_debug) {
 			int i;
 			for (i = 0; i < 5; i++) {
 				if (arg[i] == NULL)
@@ -580,19 +564,23 @@ void start_application(int no_sandbox, char *set_sandbox_status) {
 		if (set_sandbox_status)
 			*set_sandbox_status = SANDBOX_DONE;
 		execvp(arg[0], arg);
+
+		// join sandbox without shell in the mount namespace
+		if (fd > -1)
+			fexecve(fd, arg, environ);
 	}
 
-	perror("execvp");
-	exit(1); // it should never get here!!!
+	perror("Cannot start application");
+	exit(1);
 }
 
 static void enforce_filters(void) {
+	fmessage("\n** Warning: dropping all Linux capabilities and setting NO_NEW_PRIVS prctl **\n\n");
 	// enforce NO_NEW_PRIVS
 	arg_nonewprivs = 1;
 	force_nonewprivs = 1;
 
 	// disable all capabilities
-	fmessage("\n**     Warning: dropping all Linux capabilities     **\n\n");
 	arg_caps_drop_all = 1;
 
 	// drop all supplementary groups; /etc/group file inside chroot
@@ -793,14 +781,18 @@ int sandbox(void* sandbox_arg) {
 			exit(rv);
 	}
 
-	// need ld.so.preload if tracing or seccomp with any non-default lists
-	bool need_preload = arg_trace || arg_tracelog || arg_seccomp_postexec;
+#ifdef HAVE_FORCE_NONEWPRIVS
+	bool always_enforce_filters = true;
+#else
+	bool always_enforce_filters = false;
+#endif
 	// for --appimage, --chroot and --overlay* we force NO_NEW_PRIVS
 	// and drop all capabilities
-	if (getuid() != 0 && (arg_appimage || cfg.chrootdir || arg_overlay)) {
+	if (getuid() != 0 && (arg_appimage || cfg.chrootdir || arg_overlay || always_enforce_filters))
 		enforce_filters();
-		need_preload = arg_trace || arg_tracelog;
-	}
+
+	// need ld.so.preload if tracing or seccomp with any non-default lists
+	bool need_preload = arg_trace || arg_tracelog || arg_seccomp_postexec;
 
 	// trace pre-install
 	if (need_preload)
@@ -831,6 +823,11 @@ int sandbox(void* sandbox_arg) {
 	else
 #endif
 		fs_basic_fs();
+
+	//****************************
+	// appimage
+	//****************************
+	appimage_mount();
 
 	//****************************
 	// private mode
@@ -967,11 +964,35 @@ int sandbox(void* sandbox_arg) {
 		else if (arg_overlay)
 			fwarning("private-etc feature is disabled in overlay\n");
 		else {
-			fs_private_dir_list("/etc", RUN_ETC_DIR, cfg.etc_private_keep);
-			fs_private_dir_list("/usr/etc", RUN_USR_ETC_DIR, cfg.etc_private_keep); // openSUSE
+			/* Current /etc/passwd and /etc/group files are bind
+			 * mounted filtered versions of originals. Leaving
+			 * them underneath private-etc mount causes problems
+			 * in devices with older kernels, e.g. attempts to
+			 * update the real /etc/passwd file yield EBUSY.
+			 *
+			 * As we do want to retain filtered /etc content:
+			 * 1. duplicate /etc content to RUN_ETC_DIR
+			 * 2. unmount bind mounts from /etc
+			 * 3. mount RUN_ETC_DIR at /etc
+			 */
+			timetrace_start();
+			fs_private_dir_copy("/etc", RUN_ETC_DIR, cfg.etc_private_keep);
+
+			if (umount2("/etc/group", MNT_DETACH) == -1)
+				fprintf(stderr, "/etc/group: unmount: %s\n", strerror(errno));
+			if (umount2("/etc/passwd", MNT_DETACH) == -1)
+				fprintf(stderr, "/etc/passwd: unmount: %s\n", strerror(errno));
+
+			fs_private_dir_mount("/etc", RUN_ETC_DIR);
+			fmessage("Private /etc installed in %0.2f ms\n", timetrace_end());
+
 			// create /etc/ld.so.preload file again
 			if (need_preload)
 				fs_trace_preload();
+
+			// openSUSE configuration is split between /etc and /usr/etc
+			// process private-etc a second time
+			fs_private_dir_list("/usr/etc", RUN_USR_ETC_DIR, cfg.etc_private_keep);
 		}
 	}
 
@@ -1013,21 +1034,9 @@ int sandbox(void* sandbox_arg) {
 		fs_dev_disable_video();
 
 	//****************************
-	// install trace
-	//****************************
-	if (need_preload)
-		fs_trace();
-
-	//****************************
 	// set dns
 	//****************************
 	fs_resolvconf();
-
-	//****************************
-	// fs post-processing
-	//****************************
-	fs_logger_print();
-	fs_logger_change_owner();
 
 	//****************************
 	// start dhcp client
@@ -1076,6 +1085,12 @@ int sandbox(void* sandbox_arg) {
 
 	// save original umask
 	save_umask();
+
+	//****************************
+	// fs post-processing
+	//****************************
+	fs_logger_print();
+	fs_logger_change_owner();
 
 	//****************************
 	// set security filters
@@ -1134,13 +1149,21 @@ int sandbox(void* sandbox_arg) {
 	fs_remount(RUN_SECCOMP_DIR, MOUNT_READONLY, 0);
 	seccomp_debug();
 
+	//****************************
+	// install trace - still need capabilities
+	//****************************
+	if (need_preload)
+		fs_trace();
+
+	//****************************
+	// continue security filters
+	//****************************
 	// set capabilities
 	set_caps();
 
 	//****************************************
 	// relay status information to join option
 	//****************************************
-
 	char *set_sandbox_status = create_join_file();
 
 	//****************************************
@@ -1201,7 +1224,6 @@ int sandbox(void* sandbox_arg) {
 	//****************************************
 	// set cpu affinity
 	//****************************************
-
 	if (cfg.cpus)
 		set_cpu_affinity();
 
@@ -1223,7 +1245,7 @@ int sandbox(void* sandbox_arg) {
 			set_nice(cfg.nice);
 		set_rlimits();
 
-		start_application(0, set_sandbox_status);
+		start_application(0, -1, set_sandbox_status);
 	}
 
 	munmap(set_sandbox_status, 1);

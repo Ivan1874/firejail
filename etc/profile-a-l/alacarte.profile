@@ -6,6 +6,7 @@ include alacarte.local
 # Persistent global definitions
 include globals.local
 
+# Allow python (blacklisted by disable-interpreters.inc)
 include allow-python2.inc
 include allow-python3.inc
 
@@ -49,7 +50,7 @@ shell none
 tracelog
 
 disable-mnt
-private-bin alacarte,bash,python*,sh
+# private-bin alacarte,bash,python*,sh
 private-cache
 private-dev
 private-etc alternatives,dconf,fonts,gtk-3.0,locale.alias,locale.conf,login.defs,mime.types,nsswitch.conf,passwd,pki,X11,xdg

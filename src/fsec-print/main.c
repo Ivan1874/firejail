@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2020 Firejail Authors
+ * Copyright (C) 2014-2021 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -61,10 +61,7 @@ printf("\n");
 		return 0;
 	}
 
-#ifdef WARN_DUMPABLE
-	if (prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) == 1 && getuid())
-		fprintf(stderr, "Error fsec-print: I am dumpable\n");
-#endif
+	warn_dumpable();
 
 	char *fname = argv[1];
 

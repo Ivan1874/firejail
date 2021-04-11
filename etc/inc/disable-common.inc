@@ -291,7 +291,15 @@ read-only ${HOME}/.zshrc
 read-only ${HOME}/.zshrc.local
 
 # Remote access
-read-only ${HOME}/.ssh/authorized_keys
+blacklist ${HOME}/.rhosts
+blacklist ${HOME}/.shosts
+blacklist ${HOME}/.ssh/authorized_keys
+blacklist ${HOME}/.ssh/authorized_keys2
+blacklist ${HOME}/.ssh/environment
+blacklist ${HOME}/.ssh/rc
+blacklist /etc/hosts.equiv
+read-only ${HOME}/.ssh/config
+read-only ${HOME}/.ssh/config.d
 
 # Initialization files that allow arbitrary command execution
 read-only ${HOME}/.caffrc
@@ -310,6 +318,7 @@ read-only ${HOME}/.msmtprc
 read-only ${HOME}/.mutt/muttrc
 read-only ${HOME}/.muttrc
 read-only ${HOME}/.nano
+read-only ${HOME}/.npmrc
 read-only ${HOME}/.pythonrc.py
 read-only ${HOME}/.reportbugrc
 read-only ${HOME}/.tmux.conf
@@ -318,6 +327,7 @@ read-only ${HOME}/.viminfo
 read-only ${HOME}/.vimrc
 read-only ${HOME}/.xmonad
 read-only ${HOME}/.xscreensaver
+read-only ${HOME}/.yarnrc
 read-only ${HOME}/_exrc
 read-only ${HOME}/_gvimrc
 read-only ${HOME}/_vimrc
@@ -344,6 +354,9 @@ read-only ${HOME}/.local/share/mime
 
 # Write-protection for thumbnailer dir
 read-only ${HOME}/.local/share/thumbnailers
+
+# prevent access to ssh-agent
+blacklist /tmp/ssh-*
 
 # top secret
 blacklist ${HOME}/*.kdb
@@ -391,6 +404,7 @@ blacklist /etc/shadow
 blacklist /etc/shadow+
 blacklist /etc/shadow-
 blacklist /etc/ssh
+blacklist /etc/ssh/*
 blacklist /home/.ecryptfs
 blacklist /home/.fscrypt
 blacklist /var/backup
@@ -428,6 +442,7 @@ blacklist ${PATH}/mount
 blacklist ${PATH}/mount.ecryptfs_private
 blacklist ${PATH}/nc
 blacklist ${PATH}/ncat
+blacklist ${PATH}/nmap
 blacklist ${PATH}/newgidmap
 blacklist ${PATH}/newgrp
 blacklist ${PATH}/newuidmap
@@ -438,6 +453,7 @@ blacklist ${PATH}/sg
 blacklist ${PATH}/strace
 blacklist ${PATH}/su
 blacklist ${PATH}/sudo
+blacklist ${PATH}/tcpdump
 blacklist ${PATH}/umount
 blacklist ${PATH}/unix_chkpwd
 blacklist ${PATH}/xev
